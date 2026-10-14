@@ -24,4 +24,4 @@ jobs:
         run: cmake --build build --config Release --parallel
 
       - name: Check program behavior
-        run: python tests/test.py build/Release/lab2_parent.exe
+        run: python -X utf8 tests/test.py build/Release/lab2_parent.exe
