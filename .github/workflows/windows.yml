@@ -1,0 +1,27 @@
+name: Windows test
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: windows-2022
+
+    steps:
+      - name: Get source code
+        uses: actions/checkout@v7
+
+      - name: Set up Python for the smoke test
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Configure CMake
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build programs
+        run: cmake --build build --config Release --parallel
+
+      - name: Check program behavior
+        run: python tests/smoke.py build/Release/lab2_parent.exe
