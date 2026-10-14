@@ -4,57 +4,22 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <wchar.h>
-
-static wchar_t *utf8_to_wide(const char *text) {
-    int length = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,
-                                     text, -1, NULL, 0);
-    wchar_t *wide;
-
-    if (length == 0) {
-        return NULL;
-    }
-    wide = malloc((size_t)length * sizeof(*wide));
-    if (wide == NULL) {
-        SetLastError(ERROR_OUTOFMEMORY);
-        return NULL;
-    }
-    if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,
-                            text, -1, wide, length) == 0) {
-        DWORD error = GetLastError();
-        free(wide);
-        SetLastError(error);
-        return NULL;
-    }
-    return wide;
-}
 
 int start_child(ChildProcess *child, const char *executable_path,
                 const char *output_filename) {
     SECURITY_ATTRIBUTES attributes = {sizeof(attributes), NULL, TRUE};
-    STARTUPINFOW startup = {0};
+    STARTUPINFOA startup = {0};
     PROCESS_INFORMATION process = {0};
     HANDLE read_handle = NULL;
     HANDLE write_handle = NULL;
     HANDLE output_handle = INVALID_HANDLE_VALUE;
-    wchar_t *executable = NULL;
-    wchar_t *output_path = NULL;
     DWORD error;
 
     child->process_handle = NULL;
     child->write_handle = NULL;
     child->started = 0;
 
-    executable = utf8_to_wide(executable_path);
-    if (executable == NULL) {
-        goto failed;
-    }
-    output_path = utf8_to_wide(output_filename);
-    if (output_path == NULL) {
-        goto failed;
-    }
-
-    output_handle = CreateFileW(output_path, GENERIC_WRITE, FILE_SHARE_READ,
+    output_handle = CreateFileA(output_filename, GENERIC_WRITE, FILE_SHARE_READ,
                                 &attributes, CREATE_ALWAYS,
                                 FILE_ATTRIBUTE_NORMAL, NULL);
     if (output_handle == INVALID_HANDLE_VALUE) {
@@ -75,7 +40,7 @@ int start_child(ChildProcess *child, const char *executable_path,
     startup.hStdOutput = output_handle;
     startup.hStdError = output_handle;
 
-    if (!CreateProcessW(executable, NULL, NULL, NULL, TRUE, 0, NULL, NULL,
+    if (!CreateProcessA(executable_path, NULL, NULL, NULL, TRUE, 0, NULL, NULL,
                         &startup, &process)) {
         goto failed;
     }
@@ -83,9 +48,6 @@ int start_child(ChildProcess *child, const char *executable_path,
     CloseHandle(process.hThread);
     CloseHandle(read_handle);
     CloseHandle(output_handle);
-    free(executable);
-    free(output_path);
-
     child->process_handle = process.hProcess;
     child->write_handle = write_handle;
     child->started = 1;
@@ -96,8 +58,6 @@ failed:
     if (read_handle != NULL) CloseHandle(read_handle);
     if (write_handle != NULL) CloseHandle(write_handle);
     if (output_handle != INVALID_HANDLE_VALUE) CloseHandle(output_handle);
-    free(executable);
-    free(output_path);
     SetLastError(error);
     return -1;
 }

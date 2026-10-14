@@ -35,6 +35,6 @@ with tempfile.TemporaryDirectory() as temp_folder:
 
     print("Тест пройден: все строки правильно записаны и перевёрнуты")
     print("Содержимое first.txt:")
-    print(first_text)
+    print(first)
     print("Содержимое second.txt:")
-    print(second_text)
+    print(second)

@@ -64,6 +64,7 @@ int start_child(ChildProcess *child, const char *executable_path,
     close(pipe_fds[0]);
     close(output_fd);
 
+
     if (fcntl(pipe_fds[1], F_SETFD, FD_CLOEXEC) == -1) {
         int saved_errno = errno;
         close(pipe_fds[1]);
