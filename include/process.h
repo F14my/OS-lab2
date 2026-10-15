@@ -22,21 +22,14 @@ typedef struct {
     int started;
 } ChildProcess;
 
-/*
- * Запускает дочернюю программу.
- * Её stdin получает данные из pipe, а stdout перенаправляется в output_filename.
- * Возвращает 0 при успехе, -1 при системной ошибке.
- */
+
 int start_child(ChildProcess *child, const char *executable_path,
                 const char *output_filename);
 
-/* Полностью отправляет size байт выбранному ребёнку. */
 int write_all(ChildProcess *child, const char *buffer, size_t size);
 
-/* Закрывает входной канал ребёнка и ждёт его завершения. */
 int finish_child(ChildProcess *child);
 
-/* Показывает последнюю ошибку ОС для функций этого интерфейса. */
 void print_process_error(const char *message);
 
 #endif

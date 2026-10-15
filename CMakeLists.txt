@@ -30,7 +30,6 @@ else()
     message(FATAL_ERROR "Эта операционная система пока не поддерживается")
 endif()
 
-# Передаём строковый литерал с полным путём к дочерней программе.
 target_compile_definitions(lab2_parent PRIVATE
         "CHILD_EXECUTABLE_PATH=\"$<TARGET_FILE:lab2_child>\""
 )
