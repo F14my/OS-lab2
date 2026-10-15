@@ -1,0 +1,183 @@
+\documentclass[pdf,unicode,12pt,a4paper,oneside,fleqn]{article}
+
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[utf8]{inputenc}
+  \usepackage[T2A]{fontenc}
+  \usepackage{tempora}
+\else
+  \usepackage{fontspec}
+  \setmainfont{texgyretermes-regular.otf}[
+    BoldFont=texgyretermes-bold.otf,
+    ItalicFont=texgyretermes-italic.otf,
+    BoldItalicFont=texgyretermes-bolditalic.otf]
+\fi
+\usepackage[english,russian]{babel}
+\usepackage{geometry}
+\geometry{a4paper,left=2.54cm,right=2.54cm,top=2.54cm,bottom=2.54cm,
+          headheight=0mm,headsep=0mm,footskip=0mm}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{csquotes}
+\usepackage{hyperref}
+\hypersetup{hidelinks}
+
+\titleformat*{\section}{\large\bfseries}
+\titlespacing\section{0pt}{12pt plus 4pt minus 2pt}{0pt plus 2pt minus 2pt}
+\setcounter{secnumdepth}{0}
+\pagestyle{empty}
+\frenchspacing
+\parindent=0pt
+\parskip=3pt
+
+\newcommand{\StudentName}{Яковлев Артём Сергеевич}
+\newcommand{\StudentGroup}{М8О-203БВ-25}
+\newcommand{\TeacherName}{Миронов Евгений Сергеевич}
+
+\begin{document}
+
+\begin{titlepage}
+\begin{center}
+\large
+МОСКОВСКИЙ АВИАЦИОННЫЙ ИНСТИТУТ\\
+(НАЦИОНАЛЬНЫЙ ИССЛЕДОВАТЕЛЬСКИЙ УНИВЕРСИТЕТ)
+
+\vspace{20pt}
+Институт №8 <<Компьютерные науки и прикладная математика>>
+
+Кафедра 806 <<Вычислительная математика и программирование>>
+\end{center}
+
+\vspace{60pt}
+\begin{center}
+\bfseries\large
+Лабораторная работа №2\\
+по курсу \enquote{Операционные системы}
+
+\vspace{54pt}
+Процессы и каналы\\
+Вариант 22
+\end{center}
+
+\vfill
+\begin{flushright}
+\large
+\begin{tabular}{rl}
+Выполнил: & \StudentName \\
+Группа: & \StudentGroup \\
+Преподаватель: & \TeacherName \\
+\end{tabular}
+\end{flushright}
+
+\vspace{92pt}
+\begin{center}\large Москва, 2026\end{center}
+\end{titlepage}
+\pagebreak
+
+\section{Цели и условие}
+Цель работы -- научиться запускать дочерние процессы и передавать им данные через
+каналы\cite{task}.
+
+Программа сначала получает от пользователя имена двух файлов. Затем родительский
+процесс запускает двух детей. Каждому ребёнку он может отправлять строки через
+отдельный канал. Ребёнок переворачивает полученную строку и записывает результат
+в свой файл.
+
+По варианту 22 родитель выбирает первого ребёнка с вероятностью 80\%, а второго --
+с вероятностью 20\%. Программа должна
+работать на POSIX-системах и Windows.
+
+
+\section{Программное и аппаратное обеспечение}
+\begin{itemize}[noitemsep,topsep=0pt]
+\item Язык программы -- C (стандарт C11); для сборки используется CMake.
+\item Локальная проверка выполнена на macOS, компьютер ARM64, компилятор Apple Clang.
+\item Сборка на Windows настроена в GitHub Actions на \texttt{windows-2022}.
+\item Для проверки результата используется небольшой тест на Python.
+\end{itemize}
+
+
+\section{Метод решения}
+Программа состоит из родительской программы \texttt{lab2\_parent} и дочерней
+\texttt{lab2\_child}. Родитель запускает два экземпляра дочерней программы.
+Для каждого он создаёт канал (pipe) и файл.
+
+Работа программы проходит так:
+\begin{enumerate}[noitemsep,topsep=0pt]
+\item Родитель читает имена двух файлов и запускает обоих детей.
+\item Для каждой новой строки он получает число от 0 до 99. Если число меньше 80,
+строка отправляется первому ребёнку; иначе -- второму.
+\item Ребёнок читает строку, переворачивает её и записывает в свой файл.
+Например, \texttt{"Hello"} превращается в \texttt{"olleH"}.
+\item Когда строки заканчиваются, родитель закрывает каналы и ждёт завершения детей.
+\end{enumerate}
+
+Длинные строки читаются с помощью увеличиваемого буфера. Для работы с процессами
+используются разные функции POSIX и Windows, но порядок действий остаётся одним и тем же.
+В Windows-реализации путь к программе и имена файлов должны состоять из
+ASCII-символов; содержимое строк остаётся в UTF-8.
+
+\section{Описание программы}
+Основные файлы проекта:
+\begin{itemize}[noitemsep,topsep=0pt]
+\item \texttt{main.c} -- родитель: читает ввод, выбирает ребёнка и отправляет строки.
+\item \texttt{child.c} -- ребёнок: переворачивает строки и выводит результат.
+\item \texttt{line\_io.c} -- читает строки без заранее заданного ограничения длины.
+\item \texttt{process\_posix.c} и \texttt{process\_win.c} -- создают каналы и запускают
+процессы в соответствующей операционной системе.
+\item \texttt{process.h} -- описывает структуру \texttt{ChildProcess}, в которой
+родитель хранит данные о запущенном ребёнке и канале.
+\item \texttt{CMakeLists.txt} -- выбирает нужный файл для текущей системы и собирает
+обе программы.
+\item \texttt{tests/test.py} проверяет результат работы для Windows.
+\end{itemize}
+
+Если при создании файла, канала или процесса происходит ошибка, программа сообщает
+о ней и закрывает уже открытые ресурсы.
+
+
+\section{Результаты}
+На macOS программа прошла проверку. В одном запуске были введены строки
+\texttt{Hello}, \enquote{Привет}, \texttt{abcdef} и \texttt{12345}.
+В файле \texttt{first.txt} оказались \texttt{olleH}, \enquote{тевирП} и
+\texttt{fedcba}; в \texttt{second.txt} -- \texttt{54321}.
+Все строки записаны по одному разу и перевёрнуты правильно. В другом запуске
+распределение по файлам может отличаться, потому что ребёнок выбирается случайно.
+
+Опубликованная версия проекта находится в репозитории\cite{source}.
+Её сборка и тест на Windows также прошли успешно в GitHub Actions\cite{ci}.
+
+
+
+\section{Выводы}
+В ходе работы написана программа, в которой родитель передаёт строки двум дочерним
+процессам через отдельные каналы. Дети переворачивают строки и сохраняют их
+в разные файлы. Такая схема подходит для задач, где поток независимых сообщений нужно распределить
+между несколькими процессами. Например, каждый процесс может обрабатывать свою
+часть входных данных и записывать результат в отдельный файл.
+
+Основные трудности в реализации возникли при запуске
+дочерних процессов и работе с каналами: важно передать ребёнку нужный конец
+канала и вовремя закрыть ненужные концы. Иначе ребёнок может продолжать ждать
+ввод после того, как родитель закончил отправлять строки. Для Windows также
+потребовался отдельный код запуска процессов.
+
+
+Проверка на macOS и Windows показала правильную работу на латинских и русских строках.
+
+
+\begin{thebibliography}{99}
+\bibitem{task} Лабораторная работа №2 по курсу \enquote{Операционные системы}.
+Условие задания, вариант 22.
+
+\bibitem{source} F14my. \enquote{OS-lab2}.
+\href{https://github.com/F14my/OS-lab2}{Исходный код}.
+\bibitem{ci} GitHub Actions. \enquote{Windows test}.
+\href{https://github.com/F14my/OS-lab2/actions/runs/38629281921}{Успешный запуск для коммита 7193d5b}
+\bibitem{microsoft}
+Microsoft Learn. Creating a Child Process with Redirected Input and Output.
+\href{https://learn.microsoft.com/en-us/windows/win32/procthread/creating-a-child-process-with-redirected-input-and-output}
+{Документация Win32 API}.
+\end{thebibliography}
+
+\end{document}
